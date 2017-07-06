@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, re
 
 class FoundString(Exception):
     def __init__(self, lineNumber):
@@ -12,33 +12,13 @@ class FoundNone(Exception):
     def __init__(self, lineNumber):
         super().__init__("Found None on line: "+str(lineNumber))
 
-file = os.path.abspath(sys.argv[0])
+with open(os.path.abspath(sys.argv[0])) as f:
+    lines = [line.strip() for line in f]
 
-read = open(file, "r")
-rawLines = read.readlines()
-lines = [rawLines[x].strip() for x in range(len(rawLines))]
-read.close()
-
-lineNumber = 1
-while lineNumber <= len(lines):
-    line = lines[lineNumber-1]
+for lineNumber, line in enumerate(lines):
     if "'" in line or "\"" in line:
-        raise FoundString(lineNumber)
-    for digit in range(9):
-        while str(digit) in line:
-            index = line.index(str(digit))
-            if index == 0:
-                raise FoundNumber(lineNumber)
-            previous = line[index-1]
-            if ord(previous) not in list(range(97,123)) + list(range(65,91)):
-                raise FoundNumber(lineNumber)
-            line = line[:index] + line[index+1:]
-    while "None" in line:
-        index =line.index("None")
-        if index == 0:
-            raise FoundNone(lineNumber)
-        previous = line[index-1]
-        if ord(previous) not in list(range(97,123)) + list(range(65,91)):
-            raise FoundNone(lineNumber)
-        line = line[:index] + line[index+4:]
-    lineNumber += 1
+        raise FoundString(lineNumber+1)
+    if re.search("^(.*[^a-zA-z])?[0-9]", line) is not None:
+        raise FoundNumber(lineNumber+1)
+    for m in re.finditer("^(.*[^a-zA-z])?None", line):
+        raise FoundNone(lineNumber-1)
